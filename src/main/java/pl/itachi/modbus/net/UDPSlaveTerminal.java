@@ -1,22 +1,36 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- * Original implementation by jamod development team.
- * This file modified by Charles Hache <chache@brood.ca>
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.net;
 
 import pl.itachi.modbus.Modbus;
@@ -31,259 +45,262 @@ import java.util.Hashtable;
 
 /**
  * Class implementing a <tt>UDPSlaveTerminal</tt>.
- * 
+ *
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
-class UDPSlaveTerminal implements UDPTerminal {
+class UDPSlaveTerminal
+    implements UDPTerminal {
 
-	// instance attributes
-	private DatagramSocket m_Socket;
-	// private int m_Timeout = Modbus.DEFAULT_TIMEOUT;
-	private boolean m_Active;
-	protected InetAddress m_LocalAddress;
-	private int m_LocalPort = Modbus.DEFAULT_PORT;
-	protected ModbusUDPTransport m_ModbusTransport;
-	// private int m_Retries = Modbus.DEFAULT_RETRIES;
+  //instance attributes
+  private DatagramSocket m_Socket;
+  private int m_Timeout = Modbus.DEFAULT_TIMEOUT;
+  private boolean m_Active;
+  protected InetAddress m_LocalAddress;
+  private int m_LocalPort = Modbus.DEFAULT_PORT;
+  protected ModbusUDPTransport m_ModbusTransport;
+  private int m_Retries = Modbus.DEFAULT_RETRIES;
 
-	private LinkedQueue m_SendQueue;
-	private LinkedQueue m_ReceiveQueue;
-	private PacketSender m_PacketSender;
-	private PacketReceiver m_PacketReceiver;
-	private Thread m_Receiver;
-	private Thread m_Sender;
+  private LinkedQueue m_SendQueue;
+  private LinkedQueue m_ReceiveQueue;
+  private PacketSender m_PacketSender;
+  private PacketReceiver m_PacketReceiver;
+  private Thread m_Receiver;
+  private Thread m_Sender;
 
-	protected Hashtable<Integer, DatagramPacket> m_Requests;
+  protected Hashtable m_Requests;
 
-	protected UDPSlaveTerminal() {
-		m_SendQueue = new LinkedQueue();
-		m_ReceiveQueue = new LinkedQueue();
-		m_Requests = new Hashtable<Integer, DatagramPacket>(342);
-	}// constructor
+  protected UDPSlaveTerminal() {
+    m_SendQueue = new LinkedQueue();
+    m_ReceiveQueue = new LinkedQueue();
+    //m_Requests = new Hashtable(342,0.75F);
+    m_Requests = new Hashtable(342);
+  }//constructor
 
-	protected UDPSlaveTerminal(InetAddress localaddress) {
-		m_LocalAddress = localaddress;
-		m_SendQueue = new LinkedQueue();
-		m_ReceiveQueue = new LinkedQueue();
-		m_Requests = new Hashtable<Integer, DatagramPacket>(342);
-	}// constructor
+  protected UDPSlaveTerminal(InetAddress localaddress) {
+    m_LocalAddress = localaddress;
+    m_SendQueue = new LinkedQueue();
+    m_ReceiveQueue = new LinkedQueue();
+    //m_Requests = new Hashtable(342, 0.75F);
+    m_Requests = new Hashtable(342);
+  }//constructor
 
-	public InetAddress getLocalAddress() {
-		return m_LocalAddress;
-	}// getLocalAddress
+  public InetAddress getLocalAddress() {
+    return m_LocalAddress;
+  }//getLocalAddress
 
-	public int getLocalPort() {
-		return m_LocalPort;
-	}// getLocalPort
+  public int getLocalPort() {
+    return m_LocalPort;
+  }//getLocalPort
 
-	protected void setLocalPort(int port) {
-		m_LocalPort = port;
-	}// setLocalPort
+  protected void setLocalPort(int port) {
+    m_LocalPort = port;
+  }//setLocalPort
 
-	/**
-	 * Tests if this <tt>UDPSlaveTerminal</tt> is active.
-	 * 
-	 * @return <tt>true</tt> if active, <tt>false</tt> otherwise.
-	 */
-	public boolean isActive() {
-		return m_Active;
-	}// isActive
+  /**
+   * Tests if this <tt>UDPSlaveTerminal</tt> is active.
+   *
+   * @return <tt>true</tt> if active, <tt>false</tt> otherwise.
+   */
+  public boolean isActive() {
+    return m_Active;
+  }//isActive
 
-	/**
-	 * Activate this <tt>UDPTerminal</tt>.
-	 * 
-	 * @throws Exception
-	 *             if there is a network failure.
-	 */
-	public synchronized void activate() throws Exception {
-		if (!isActive()) {
-			if (Modbus.debug)
-				System.out.println("UDPSlaveTerminal::activate()");
-			if (m_Socket == null) {
-				if (m_LocalAddress != null && m_LocalPort != -1) {
-					m_Socket = new DatagramSocket(m_LocalPort, m_LocalAddress);
-				} else {
-					m_Socket = new DatagramSocket();
-					m_LocalPort = m_Socket.getLocalPort();
-					m_LocalAddress = m_Socket.getLocalAddress();
-				}
-			}
-			if (Modbus.debug)
-				System.out.println("UDPSlaveTerminal::haveSocket():"
-						+ m_Socket.toString());
-			if (Modbus.debug)
-				System.out.println("UDPSlaveTerminal::addr=:"
-						+ m_LocalAddress.toString() + ":port=" + m_LocalPort);
+  /**
+   * Activate this <tt>UDPTerminal</tt>.
+   *
+   * @throws Exception if there is a network failure.
+   */
+  public synchronized void activate()
+      throws Exception {
+    if (!isActive()) {
+      if (Modbus.debug) System.out.println("UDPSlaveTerminal::activate()");
+      if (m_Socket == null) {
+        if (m_LocalAddress != null && m_LocalPort != -1) {
+          m_Socket = new DatagramSocket(m_LocalPort, m_LocalAddress);
+        } else {
+          m_Socket = new DatagramSocket();
+          m_LocalPort = m_Socket.getLocalPort();
+          m_LocalAddress = m_Socket.getLocalAddress();
+        }
+      }
+      if (Modbus.debug) System.out.println("UDPSlaveTerminal::haveSocket():" + m_Socket.toString());
+      if (Modbus.debug) System.out.println("UDPSlaveTerminal::addr=:" + m_LocalAddress.toString() + ":port=" + m_LocalPort);
 
-			m_Socket.setReceiveBufferSize(1024);
-			m_Socket.setSendBufferSize(1024);
-			m_PacketReceiver = new PacketReceiver();
-			m_Receiver = new Thread(m_PacketReceiver);
-			m_Receiver.start();
-			if (Modbus.debug)
-				System.out.println("UDPSlaveTerminal::receiver started()");
-			m_PacketSender = new PacketSender();
-			m_Sender = new Thread(m_PacketSender);
-			m_Sender.start();
-			if (Modbus.debug)
-				System.out.println("UDPSlaveTerminal::sender started()");
-			m_ModbusTransport = new ModbusUDPTransport(this);
-			if (Modbus.debug)
-				System.out.println("UDPSlaveTerminal::transport created");
-			m_Active = true;
-		}
-		if (Modbus.debug)
-			System.out.println("UDPSlaveTerminal::activated");
-	}// activate
 
-	/**
-	 * Deactivates this <tt>UDPSlaveTerminal</tt>.
-	 */
-	public void deactivate() {
-		try {
-			if (m_Active) {
-				// 1. stop receiver
-				m_PacketReceiver.stop();
-				m_Receiver.join();
-				// 2. stop sender gracefully
-				m_PacketSender.stop();
-				m_Sender.join();
-				// 3. close socket
-				m_Socket.close();
-				m_ModbusTransport = null;
-				m_Active = false;
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-	}// deactivate
+      m_Socket.setReceiveBufferSize(1024);
+      m_Socket.setSendBufferSize(1024);
+      m_PacketReceiver = new PacketReceiver();
+      m_Receiver = new Thread(m_PacketReceiver);
+      m_Receiver.start();
+      if (Modbus.debug) System.out.println("UDPSlaveTerminal::receiver started()");
+      m_PacketSender = new PacketSender();
+      m_Sender = new Thread(m_PacketSender);
+      m_Sender.start();
+      if (Modbus.debug) System.out.println("UDPSlaveTerminal::sender started()");
+      m_ModbusTransport = new ModbusUDPTransport(this);
+      if (Modbus.debug) System.out.println("UDPSlaveTerminal::transport created");
+      m_Active = true;
+    }
+    if (Modbus.debug) System.out.println("UDPSlaveTerminal::activated");
+  }//activate
 
-	/**
-	 * Returns the <tt>ModbusTransport</tt> associated with this
-	 * <tt>TCPMasterConnection</tt>.
-	 * 
-	 * @return the connection's <tt>ModbusTransport</tt>.
-	 */
-	public ModbusUDPTransport getModbusTransport() {
-		return m_ModbusTransport;
-	}// getModbusTransport
+  /**
+   * Deactivates this <tt>UDPSlaveTerminal</tt>.
+   */
+  public void deactivate() {
+    try {
+      if (m_Active) {
+        //1. stop receiver
+        m_PacketReceiver.stop();
+        m_Receiver.join();
+        //2. stop sender gracefully
+        m_PacketSender.stop();
+        m_Sender.join();
+        //3. close socket
+        m_Socket.close();
+        m_ModbusTransport = null;
+        m_Active = false;
+      }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+  }//deactivate
 
-	protected boolean hasResponse() {
-		return !m_ReceiveQueue.isEmpty();
-	}// hasResponse
+  /**
+   * Returns the <tt>ModbusTransport</tt> associated with this
+   * <tt>TCPMasterConnection</tt>.
+   *
+   * @return the connection's <tt>ModbusTransport</tt>.
+   */
+  public ModbusUDPTransport getModbusTransport() {
+    return m_ModbusTransport;
+  }//getModbusTransport
 
-	/**
-	 * Returns the timeout for this <tt>UDPSlaveTerminal</tt>.
-	 * 
-	 * @return the timeout as <tt>int</tt>.
-	 * 
-	 *         public int getReceiveTimeout() { return m_Timeout;
-	 *         }//getReceiveTimeout
-	 * 
-	 *         /** Sets the timeout for this <tt>UDPSlaveTerminal</tt>.
-	 * 
-	 * @param timeout
-	 *            the timeout as <tt>int</tt>.
-	 * 
-	 *            public void setReceiveTimeout(int timeout) { m_Timeout =
-	 *            timeout; try { m_Socket.setSoTimeout(m_Timeout); } catch
-	 *            (IOException ex) { ex.printStackTrace(); //handle? }
-	 *            }//setReceiveTimeout
-	 */
-	/**
-	 * Returns the socket of this <tt>UDPSlaveTerminal</tt>.
-	 * 
-	 * @return the socket as <tt>DatagramSocket</tt>.
-	 */
-	public DatagramSocket getSocket() {
-		return m_Socket;
-	}// getSocket
 
-	/**
-	 * Sets the socket of this <tt>UDPTerminal</tt>.
-	 * 
-	 * @param sock
-	 *            the <tt>DatagramSocket</tt> for this terminal.
-	 */
-	protected void setSocket(DatagramSocket sock) {
-		m_Socket = sock;
-	}// setSocket
+  protected boolean hasResponse() {
+    return !m_ReceiveQueue.isEmpty();
+  }//hasResponse
 
-	public void sendMessage(byte[] msg) throws Exception {
-		m_SendQueue.put(msg);
-	}// sendPackage
+  /**
+   * Returns the timeout for this <tt>UDPSlaveTerminal</tt>.
+   *
+   * @return the timeout as <tt>int</tt>.
+   *
+   public int getTimeout() {
+   return m_Timeout;
+   }//getTimeout
 
-	public byte[] receiveMessage() throws Exception {
-		return (byte[]) m_ReceiveQueue.take();
-	}// receiveMessage
+   /**
+   * Sets the timeout for this <tt>UDPSlaveTerminal</tt>.
+   *
+   * @param timeout the timeout as <tt>int</tt>.
+   *
+   public void setTimeout(int timeout) {
+   m_Timeout = timeout;
+   try {
+   m_Socket.setSoTimeout(m_Timeout);
+   } catch (IOException ex) {
+   ex.printStackTrace();
+   //handle?
+   }
+   }//setTimeout
+   */
+  /**
+   * Returns the socket of this <tt>UDPSlaveTerminal</tt>.
+   *
+   * @return the socket as <tt>DatagramSocket</tt>.
+   */
+  public DatagramSocket getSocket() {
+    return m_Socket;
+  }//getSocket
 
-	class PacketSender implements Runnable {
+  /**
+   * Sets the socket of this <tt>UDPTerminal</tt>.
+   *
+   * @param sock the <tt>DatagramSocket</tt> for this terminal.
+   */
+  protected void setSocket(DatagramSocket sock) {
+    m_Socket = sock;
+  }//setSocket
 
-		private boolean m_Continue;
+  public void sendMessage(byte[] msg)
+      throws Exception {
+    m_SendQueue.put(msg);
+  }//sendPackage
 
-		public PacketSender() {
-			m_Continue = true;
-		}// constructor
+  public byte[] receiveMessage()
+      throws Exception {
+    return (byte[]) m_ReceiveQueue.take();
+  }//receiveMessage
 
-		public void run() {
-			do {
-				try {
-					// 1. pickup the message and corresponding request
-					byte[] message = (byte[]) m_SendQueue.take();
-					DatagramPacket req = (DatagramPacket) m_Requests
-							.remove(new Integer(ModbusUtil
-									.registersToInt(message)));
-					// 2. create new Package with corresponding address and port
-					DatagramPacket res = new DatagramPacket(message,
-							message.length, req.getAddress(), req.getPort());
-					m_Socket.send(res);
-					if (Modbus.debug)
-						System.out.println("Sent package from queue.");
-				} catch (Exception ex) {
-					ex.printStackTrace();
-				}
-			} while (m_Continue || !m_SendQueue.isEmpty());
-		}// run
+  class PacketSender
+      implements Runnable {
 
-		public void stop() {
-			m_Continue = false;
-		}// stop
+    private boolean m_Continue;
 
-	}// PacketSender
+    public PacketSender() {
+      m_Continue = true;
+    }//constructor
 
-	class PacketReceiver implements Runnable {
+    public void run() {
+      do {
+        try {
+          //1. pickup the message and corresponding request
+          byte[] message = (byte[]) m_SendQueue.take();
+          DatagramPacket req = (DatagramPacket)
+              m_Requests.remove(new Integer(ModbusUtil.registersToInt(message)));
+          //2. create new Package with corresponding address and port
+          DatagramPacket res = new DatagramPacket(message,
+              message.length,
+              req.getAddress(),
+              req.getPort());
+          m_Socket.send(res);
+          if (Modbus.debug) System.out.println("Sent package from queue.");
+        } catch (Exception ex) {
+          DEBUG:ex.printStackTrace();
+        }
+      } while (m_Continue || !m_SendQueue.isEmpty());
+    }//run
 
-		private boolean m_Continue;
+    public void stop() {
+      m_Continue = false;
+    }//stop
 
-		public PacketReceiver() {
-			m_Continue = true;
-		}// constructor
+  }//PacketSender
 
-		public void run() {
-			do {
-				try {
-					// 1. Prepare buffer and receive package
-					byte[] buffer = new byte[256];// max size
-					DatagramPacket packet = new DatagramPacket(buffer,
-							buffer.length);
-					m_Socket.receive(packet);
-					// 2. Extract TID and remember request
-					Integer tid = new Integer(ModbusUtil.registersToInt(buffer));
-					m_Requests.put(tid, packet);
-					// 3. place the data buffer in the queue
-					m_ReceiveQueue.put(buffer);
-					if (Modbus.debug)
-						System.out.println("Received package to queue.");
-				} catch (Exception ex) {
-					ex.printStackTrace();
-				}
-			} while (m_Continue);
-		}// run
+  class PacketReceiver
+      implements Runnable {
 
-		public void stop() {
-			m_Continue = false;
-		}// stop
+    private boolean m_Continue;
 
-	}// PacketReceiver
+    public PacketReceiver() {
+      m_Continue = true;
+    }//constructor
 
-}// class UDPTerminal
+    public void run() {
+      do {
+        try {
+          //1. Prepare buffer and receive package
+          byte[] buffer = new byte[256];//max size
+          DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+          m_Socket.receive(packet);
+          //2. Extract TID and remember request
+          Integer tid = new Integer(ModbusUtil.registersToInt(buffer));
+          m_Requests.put(tid, packet);
+          //3. place the data buffer in the queue
+          m_ReceiveQueue.put(buffer);
+          if (Modbus.debug) System.out.println("Received package to queue.");
+        } catch (Exception ex) {
+          DEBUG:ex.printStackTrace();
+        }
+      } while (m_Continue);
+    }//run
+
+    public void stop() {
+      m_Continue = false;
+    }//stop
+
+  }//PacketReceiver
+
+}//class UDPTerminal

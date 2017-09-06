@@ -1,130 +1,112 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- * Original implementation by jamod development team.
- * This file modified by Charles Hache <chache@brood.ca>
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.util;
-
-import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Class implementing a simple thread pool.
- * 
+ *
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
 public class ThreadPool {
 
-	// instance attributes and associations
-	private final LinkedQueue m_TaskPool;
-	private ArrayList<PoolThread> m_Threads;
-	private int m_Size = 1;
+  //instance attributes and associations
+  private LinkedQueue m_TaskPool;
+  private int m_Size = 1;
 
-	/**
-	 * Constructs a new <tt>ThreadPool</tt> instance.
-	 * 
-	 * @param size
-	 *            the size of the thread pool.
-	 */
-	public ThreadPool(int size) {
-		m_Size = size;
-		m_TaskPool = new LinkedQueue();
-		m_Threads = new ArrayList<PoolThread>();
-		initPool();
-	}// constructor
+  /**
+   * Constructs a new <tt>ThreadPool</tt> instance.
+   *
+   * @param size the size of the thread pool.
+   */
+  public ThreadPool(int size) {
+    m_Size = size;
+    m_TaskPool = new LinkedQueue();
+    initPool();
+  }//constructor
 
-	/**
-	 * Execute the <tt>Runnable</tt> instance through a thread in this
-	 * <tt>ThreadPool</tt>.
-	 * 
-	 * @param task
-	 *            the <tt>Runnable</tt> to be executed.
-	 */
-	public void execute(Runnable task) {
-		try {
-			synchronized(m_TaskPool) {
-				m_TaskPool.put(task);
-			}
-		} catch (InterruptedException ex) {
-			// FIXME: Handle!?
-		}
-	}// execute
+  /**
+   * Execute the <tt>Runnable</tt> instance
+   * through a thread in this <tt>ThreadPool</tt>.
+   *
+   * @param task the <tt>Runnable</tt> to be executed.
+   */
+  public synchronized void execute(Runnable task) {
+    try {
+      m_TaskPool.put(task);
+    } catch (InterruptedException ex) {
+      //FIXME: Handle!?
+    }
+  }//execute
 
-	/**
-	 * Initializes the pool, populating it with n started threads.
-	 */
-	protected void initPool() {
-		for (int i = m_Size; --i >= 0;) {
-			PoolThread toAdd = new PoolThread();
-			toAdd.start();
-			m_Threads.add(toAdd);
-		}
-	}// initPool
+  /**
+   * Initializes the pool, populating it with
+   * n started threads.
+   */
+  protected void initPool() {
+    for (int i = m_Size; --i >= 0;) {
+      new PoolThread().start();
+    }
+  }//initPool
 
-	/**
-	 * Stops the pool, cleaning up the threads
-	 */
-	public void killPool() {
-		for (PoolThread p : m_Threads) {
-			p.setRunning(false);
-			p.interrupt();
-		}
-	}
+  /**
+   * Inner class implementing a thread that can be
+   * run in a <tt>ThreadPool</tt>.
+   *
+   * @author Dieter Wimberger
+   * @version 1.2rc1 (09/11/2004)
+   */
+  private class PoolThread extends Thread {
 
-	/**
-	 * Inner class implementing a thread that can be run in a
-	 * <tt>ThreadPool</tt>.
-	 * 
-	 * @author Dieter Wimberger
-	 * @version @version@ (@date@)
-	 */
-	private class PoolThread extends Thread {
-		private final AtomicBoolean keepRunning = new AtomicBoolean(false);
-		private Runnable task;
+    /**
+     * Runs the <tt>PoolThread</tt>.
+     * <p>
+     * This method will infinitely loop, picking
+     * up available tasks from the <tt>LinkedQueue</tt>.
+     */
+    public void run() {
+      //System.out.println("Running PoolThread");
+      do {
+        try {
+          //System.out.println(this.toString());
+          ((Runnable) m_TaskPool.take()).run();
+        } catch (Exception ex) {
+          //FIXME: Handle somehow!?
+          ex.printStackTrace();
+        }
+      } while (true);
+    }
+  }//PoolThread
 
-		/**
-		 * Runs the <tt>PoolThread</tt>.
-		 * <p>
-		 * This method will infinitely loop, picking up available tasks from the
-		 * <tt>LinkedQueue</tt>.
-		 */
-		public void run() {
-			// System.out.println("Running PoolThread");
-			setRunning(true);
-			do {
-				try {
-					task = (Runnable) m_TaskPool.take();
-					task.run();
-					
-				} catch (Exception e) {
-					// Ignore, we were likely just interrupted. Recheck if we
-					// should be running or not.
-				}
-			} while (isRunning());
-		}
-
-		void setRunning(boolean run) {
-			keepRunning.set(run);
-		}
-
-		boolean isRunning() {
-			return keepRunning.get();
-		}
-	}// PoolThread
-
-}// ThreadPool
+}//ThreadPool

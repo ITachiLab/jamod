@@ -1,23 +1,39 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.net;
 
 import java.net.InetAddress;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import pl.itachi.modbus.Modbus;
 import pl.itachi.modbus.ModbusCoupler;
@@ -28,166 +44,150 @@ import pl.itachi.modbus.msg.ModbusResponse;
 
 /**
  * Class that implements a ModbusUDPListener.<br>
- * 
+ *
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
 public class ModbusUDPListener {
 
-	private UDPSlaveTerminal m_Terminal;
-	private ModbusUDPHandler m_Handler;
-	private Thread m_HandlerThread;
-	private int m_Port = Modbus.DEFAULT_PORT;
-	private final AtomicBoolean m_Listening;
-	private InetAddress m_Interface;
+  private UDPSlaveTerminal m_Terminal;
+  private ModbusUDPHandler m_Handler;
+  private Thread m_HandlerThread;
+  private int m_Port = Modbus.DEFAULT_PORT;
+  private boolean m_Listening;
+  private InetAddress m_Interface;
 
-	/**
-	 * Constructs a new ModbusUDPListener instance.
-	 */
-	public ModbusUDPListener() {
-		m_Listening = new AtomicBoolean(false);
-	}// ModbusUDPListener
+  /**
+   * Constructs a new ModbusUDPListener instance.
+   */
+  public ModbusUDPListener() {
+  }//ModbusUDPListener
 
-	/**
-	 * Create a new <tt>ModbusUDPListener</tt> instance listening to the given
-	 * interface address.
-	 * 
-	 * @param ifc
-	 *            an <tt>InetAddress</tt> instance.
-	 */
-	public ModbusUDPListener(InetAddress ifc) {
-		m_Listening = new AtomicBoolean(false);
-		m_Interface = ifc;
-	}// ModbusUDPListener
+  /**
+   * Create a new <tt>ModbusUDPListener</tt> instance
+   * listening to the given interface address.
+   *
+   * @param ifc an <tt>InetAddress</tt> instance.
+   */
+  public ModbusUDPListener(InetAddress ifc) {
+    m_Interface = ifc;
+  }//ModbusUDPListener
 
-	/**
-	 * Returns the number of the port this <tt>ModbusUDPListener</tt> is
-	 * listening to.
-	 * 
-	 * @return the number of the IP port as <tt>int</tt>.
-	 */
-	public int getPort() {
-		return m_Port;
-	}// getPort
+  /**
+   * Returns the number of the port this <tt>ModbusUDPListener</tt>
+   * is listening to.
+   *
+   * @return the number of the IP port as <tt>int</tt>.
+   */
+  public int getPort() {
+    return m_Port;
+  }//getPort
 
-	/**
-	 * Sets the number of the port this <tt>ModbusUDPListener</tt> is listening
-	 * to.
-	 * 
-	 * @param port
-	 *            the number of the IP port as <tt>int</tt>.
-	 */
-	public void setPort(int port) {
-		m_Port = ((port > 0) ? port : Modbus.DEFAULT_PORT);
-	}// setPort
+  /**
+   * Sets the number of the port this <tt>ModbusUDPListener</tt>
+   * is listening to.
+   *
+   * @param port the number of the IP port as <tt>int</tt>.
+   */
+  public void setPort(int port) {
+    m_Port = ((port>0)? port : Modbus.DEFAULT_PORT);
+  }//setPort
 
-	/**
-	 * Starts this <tt>ModbusUDPListener</tt>.
-	 */
-	public void start() {
-		// start listening
-		try {
-			m_Listening.set(true);
-			if (m_Interface == null) {
-				m_Terminal = new UDPSlaveTerminal(InetAddress.getLocalHost());
-			} else {
-				m_Terminal = new UDPSlaveTerminal(m_Interface);
-			}
-			m_Terminal.setLocalPort(m_Port);
-			m_Terminal.activate();
+  /**
+   * Starts this <tt>ModbusUDPListener</tt>.
+   */
+  public void start() {
+    //start listening
+    try {
+      if(m_Interface == null) {
+        m_Terminal = new UDPSlaveTerminal(InetAddress.getLocalHost());
+      } else {
+        m_Terminal = new UDPSlaveTerminal(m_Interface);
+      }
+      m_Terminal.setLocalPort(m_Port);
+      m_Terminal.activate();
 
-			m_Handler = new ModbusUDPHandler(m_Terminal.getModbusTransport());
-			m_HandlerThread = new Thread(m_Handler);
-			m_HandlerThread.start();
+      m_Handler = new ModbusUDPHandler(m_Terminal.getModbusTransport());
+      m_HandlerThread = new Thread(m_Handler);
+      m_HandlerThread.start();
 
-		} catch (Exception e) {
-			m_Listening.set(false);
-			// FIXME: this is a major failure, how do we handle this
-		}
-	}// start
+    } catch (Exception e) {
+      //FIXME: this is a major failure, how do we handle this
+    }
+    m_Listening = true;
+  }//start
 
-	/**
-	 * Stops this <tt>ModbusUDPListener</tt>.
-	 */
-	public void stop() {
-		// stop listening
-		m_Listening.set(false);
-		m_Terminal.deactivate();
-		m_Handler.stop();
-	}// stop
+  /**
+   * Stops this <tt>ModbusUDPListener</tt>.
+   */
+  public void stop() {
+    //stop listening
+    m_Terminal.deactivate();
+    m_Handler.stop();
+    m_Listening = false;
+  }//stop
 
-	/**
-	 * Tests if this <tt>ModbusTCPListener</tt> is listening and accepting
-	 * incoming connections.
-	 * 
-	 * @return true if listening (and accepting incoming connections), false
-	 *         otherwise.
-	 */
-	public boolean isListening() {
-		return m_Listening.get();
-	}// isListening
+  /**
+   * Tests if this <tt>ModbusTCPListener</tt> is listening
+   * and accepting incoming connections.
+   *
+   * @return true if listening (and accepting incoming connections),
+   *          false otherwise.
+   */
+  public boolean isListening() {
+    return m_Listening;
+  }//isListening
 
-	class ModbusUDPHandler implements Runnable {
+  class ModbusUDPHandler
+      implements Runnable {
 
-		private ModbusUDPTransport m_Transport;
-		private final AtomicBoolean m_Continue;
+    private ModbusUDPTransport m_Transport;
+    private boolean m_Continue = true;
 
-		public ModbusUDPHandler(ModbusUDPTransport transport) {
-			m_Continue = new AtomicBoolean(true);
-			m_Transport = transport;
-		}// constructor
+    public ModbusUDPHandler(ModbusUDPTransport transport) {
+      m_Transport = transport;
+    }//constructor
 
-		public void run() {
-			try {
-				do {
-					// 1. read the request
-					ModbusRequest request = m_Transport.readRequest();
-					// System.out.println("Request:" + request.getHexMessage());
-					ModbusResponse response = null;
-					
-					// Getting the response could take a while, so bail
-					// if we already want to exit
-					if (!m_Continue.get()) {
-						break;
-					}
+    public void run() {
+      try {
+        do {
+          //1. read the request
+          ModbusRequest request = m_Transport.readRequest();
+          //System.out.println("Request:" + request.getHexMessage());
+          ModbusResponse response = null;
 
-					// test if Process image exists
-					if (ModbusCoupler.getReference().getProcessImage() == null) {
-						response = request
-								.createExceptionResponse(Modbus.ILLEGAL_FUNCTION_EXCEPTION);
-					} else {
-						response = request.createResponse();
-					}
-					/* DEBUG */
-					if (Modbus.debug)
-						System.out
-								.println("Request:" + request.getHexMessage());
-					if (Modbus.debug)
-						System.out.println("Response:"
-								+ response.getHexMessage());
+          //test if Process image exists
+          if (ModbusCoupler.getReference().getProcessImage() == null) {
+            response =
+                request.createExceptionResponse(Modbus.ILLEGAL_FUNCTION_EXCEPTION);
+          } else {
+            response = request.createResponse();
+          }
+          /*DEBUG*/
+          if (Modbus.debug) System.out.println("Request:" + request.getHexMessage());
+          if (Modbus.debug) System.out.println("Response:" + response.getHexMessage());
 
-					// System.out.println("Response:" +
-					// response.getHexMessage());
-					m_Transport.writeMessage(response);
-				} while (m_Continue.get());
-			} catch (ModbusIOException ex) {
-				if (!ex.isEOF()) {
-					// other troubles, output for debug
-					ex.printStackTrace();
-				}
-			} finally {
-				try {
-					m_Terminal.deactivate();
-				} catch (Exception ex) {
-					// ignore
-				}
-			}
-		}// run
+          //System.out.println("Response:" + response.getHexMessage());
+          m_Transport.writeMessage(response);
+        } while (m_Continue);
+      } catch (ModbusIOException ex) {
+        if (!ex.isEOF()) {
+          //other troubles, output for debug
+          ex.printStackTrace();
+        }
+      } finally {
+        try {
+          m_Terminal.deactivate();
+        } catch (Exception ex) {
+          //ignore
+        }
+      }
+    }//run
 
-		public void stop() {
-			m_Continue.set(false);
-		}// stop
+    public void stop() {
+      m_Continue = false;
+    }//stop
 
-	}// inner class ModbusUDPHandler
+  }//inner class ModbusUDPHandler
 
-}// class ModbusUDPListener
+}//class ModbusUDPListener

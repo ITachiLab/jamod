@@ -1,22 +1,36 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- * Original implementation by jamod development team.
- * This file modified by Charles Hache <chache@brood.ca>
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.msg;
 
 import java.io.DataInput;
@@ -24,154 +38,153 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import pl.itachi.modbus.procimg.Register;
+import pl.itachi.modbus.procimg.SimpleRegister;
 import pl.itachi.modbus.procimg.ProcessImageFactory;
 import pl.itachi.modbus.ModbusCoupler;
-import pl.itachi.modbus.Modbus;
 
 /**
- * Class implementing a <tt>ReadMultipleRegistersResponse</tt>. The
- * implementation directly correlates with the class 0 function <i>read multiple
- * registers (FC 3)</i>. It encapsulates the corresponding response message.
- * 
+ * Class implementing a <tt>ReadMultipleRegistersResponse</tt>.
+ * The implementation directly correlates with the class 0
+ * function <i>read multiple registers (FC 3)</i>. It encapsulates
+ * the corresponding response message.
+ *
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
-public final class ReadMultipleRegistersResponse extends ModbusResponse {
+public final class ReadMultipleRegistersResponse
+    extends ModbusResponse {
 
-	// instance attributes
-	private int m_ByteCount;
-	private Register[] m_Registers;
+  //instance attributes
+  private int m_ByteCount;
+  private Register[] m_Registers;
 
-	/**
-	 * Constructs a new <tt>ReadMultipleRegistersResponse</tt> instance.
-	 */
-	public ReadMultipleRegistersResponse() {
-		super();
-		setFunctionCode(Modbus.READ_MULTIPLE_REGISTERS);
-	}// constructor
+  /**
+   * Constructs a new <tt>ReadMultipleRegistersResponse</tt>
+   * instance.
+   */
+  public ReadMultipleRegistersResponse() {
+    super();
+  }//constructor
 
-	/**
-	 * Constructs a new <tt>ReadInputRegistersResponse</tt> instance.
-	 * 
-	 * @param registers
-	 *            the Register[] holding response registers.
-	 */
-	public ReadMultipleRegistersResponse(Register[] registers) {
-		super();
-		m_Registers = registers;
-		m_ByteCount = registers.length * 2;
-		setFunctionCode(Modbus.READ_MULTIPLE_REGISTERS);
-		// set correct data length excluding unit id and fc
-		setDataLength(m_ByteCount + 1);
-	}// constructor
+  /**
+   * Constructs a new <tt>ReadInputRegistersResponse</tt>
+   * instance.
+   *
+   * @param registers the Register[] holding response registers.
+   */
+  public ReadMultipleRegistersResponse(Register[] registers) {
+    super();
+    m_Registers = registers;
+    m_ByteCount = registers.length * 2;
+    //set correct data length excluding unit id and fc
+    setDataLength(m_ByteCount + 1);
+  }//constructor
 
-	/**
-	 * Returns the number of bytes that have been read.
-	 * <p>
-	 * 
-	 * @return the number of bytes that have been read as <tt>int</tt>.
-	 */
-	public int getByteCount() {
-		return m_ByteCount;
-	}// getByteCount
 
-	/**
-	 * Returns the number of words that have been read. The returned value
-	 * should be half of the the byte count of this
-	 * <tt>ReadMultipleRegistersResponse</tt>.
-	 * <p>
-	 * 
-	 * @return the number of words that have been read as <tt>int</tt>.
-	 */
-	public int getWordCount() {
-		return m_ByteCount / 2;
-	}// getWordCount
+  /**
+   * Returns the number of bytes that have been read.
+   * <p>
+   * @return the number of bytes that have been read
+   *         as <tt>int</tt>.
+   */
+  public int getByteCount() {
+    return m_ByteCount;
+  }//getByteCount
 
-	/**
-	 * Sets the number of bytes that have been returned.
-	 * <p>
-	 * 
-	 * @param count
-	 *            the number of bytes as <tt>int</tt>.
-	 */
-	private void setByteCount(int count) {
-		m_ByteCount = count;
-	}// setByteCount
+  /**
+   * Returns the number of words that have been read.
+   * The returned value should be half of the
+   * the byte count of this
+   * <tt>ReadMultipleRegistersResponse</tt>.
+   * <p>
+   * @return the number of words that have been read
+   *         as <tt>int</tt>.
+   */
+  public int getWordCount() {
+    return m_ByteCount / 2;
+  }//getWordCount
 
-	/**
-	 * Returns the value of the register at the given position (relative to the
-	 * reference used in the request) interpreted as unsigned short.
-	 * <p>
-	 * 
-	 * @param index
-	 *            the relative index of the register for which the value should
-	 *            be retrieved.
-	 * 
-	 * @return the value as <tt>int</tt>.
-	 * 
-	 * @throws IndexOutOfBoundsException
-	 *             if the index is out of bounds.
-	 */
-	public int getRegisterValue(int index) throws IndexOutOfBoundsException {
-		return m_Registers[index].toUnsignedShort();
-	}// getRegisterValue
+  /**
+   * Sets the number of bytes that have been returned.
+   * <p>
+   * @param count the number of bytes as <tt>int</tt>.
+   */
+  private void setByteCount(int count) {
+    m_ByteCount = count;
+  }//setByteCount
 
-	/**
-	 * Returns the <tt>Register</tt> at the given position (relative to the
-	 * reference used in the request).
-	 * <p>
-	 * 
-	 * @param index
-	 *            the relative index of the <tt>Register</tt>.
-	 * 
-	 * @return the register as <tt>Register</tt>.
-	 * 
-	 * @throws IndexOutOfBoundsException
-	 *             if the index is out of bounds.
-	 */
-	public Register getRegister(int index) throws IndexOutOfBoundsException {
+  /**
+   * Returns the value of the register at
+   * the given position (relative to the reference
+   * used in the request) interpreted as unsigned short.
+   * <p>
+   * @param index the relative index of the register
+   *        for which the value should be retrieved.
+   *
+   * @return the value as <tt>int</tt>.
+   *
+   * @throws IndexOutOfBoundsException if
+   *         the index is out of bounds.
+   */
+  public int getRegisterValue(int index)
+      throws IndexOutOfBoundsException {
+    return m_Registers[index].toUnsignedShort();
+  }//getRegisterValue
 
-		if (index >= getWordCount()) {
-			throw new IndexOutOfBoundsException();
-		} else {
-			return m_Registers[index];
-		}
-	}// getRegister
+  /**
+   * Returns the <tt>Register</tt> at
+   * the given position (relative to the reference
+   * used in the request).
+   * <p>
+   * @param index the relative index of the <tt>Register</tt>.
+   *
+   * @return the register as <tt>Register</tt>.
+   *
+   * @throws IndexOutOfBoundsException if
+   *         the index is out of bounds.
+   */
+  public Register getRegister(int index)
+      throws IndexOutOfBoundsException {
 
-	/**
-	 * Returns a reference to the array of registers read.
-	 * 
-	 * @return a <tt>Register[]</tt> instance.
-	 */
-	public Register[] getRegisters() {
-		return m_Registers;
-	}// getRegisters
+    if (index >= getWordCount()) {
+      throw new IndexOutOfBoundsException();
+    } else {
+      return m_Registers[index];
+    }
+  }//getRegister
 
-	public void writeData(DataOutput dout) throws IOException {
-		dout.writeByte(m_ByteCount);
-		for (int k = 0; k < getWordCount(); k++) {
-			dout.write(m_Registers[k].toBytes());
-		}
-	}// writeData
+  /**
+   * Returns a reference to the array of registers
+   * read.
+   *
+   * @return a <tt>Register[]</tt> instance.
+   */
+  public Register[] getRegisters() {
+    return m_Registers;
+  }//getRegisters
 
-	public void readData(DataInput din) throws IOException {
-		setByteCount(din.readUnsignedByte());
+  public void writeData(DataOutput dout)
+      throws IOException {
+    dout.writeByte(m_ByteCount);
+    for (int k = 0; k < getWordCount(); k++) {
+      dout.write(m_Registers[k].toBytes());
+    }
+  }//writeData
 
-		m_Registers = new Register[getWordCount()];
-		ProcessImageFactory pimf = ModbusCoupler.getReference()
-				.getProcessImageFactory();
+  public void readData(DataInput din)
+      throws IOException {
+    setByteCount(din.readUnsignedByte());
 
-		for (int k = 0; k < getWordCount(); k++) {
-			m_Registers[k] = pimf
-					.createRegister(din.readByte(), din.readByte());
-		}
+    m_Registers = new Register[getWordCount()];
+    ProcessImageFactory pimf = ModbusCoupler.getReference().getProcessImageFactory();
 
-		// update data length
-		setDataLength(getByteCount() + 1);
-	}// readData
+    for (int k = 0; k < getWordCount(); k++) {
+      m_Registers[k] = pimf.createRegister(din.readByte(), din.readByte());
+    }
 
-	public String toString() {
-		return "ReadMultipleRegistersResponse - Words: " + getWordCount();
-	}
+    //update data length
+    setDataLength(getByteCount() + 1);
+  }//readData
 
-}// class ReadMultipleRegistersResponse
+
+}//class ReadMultipleRegistersResponse

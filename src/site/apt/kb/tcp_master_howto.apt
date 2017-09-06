@@ -111,11 +111,11 @@ Implementation
 +--------------
 import java.net.*;
 import java.io.*;
-import net.wimpi.modbus.*;
-import net.wimpi.modbus.msg.*;
-import net.wimpi.modbus.io.*;
-import net.wimpi.modbus.net.*;
-import net.wimpi.modbus.util.*;
+import pl.itachi.modbus.*;
+import pl.itachi.modbus.msg.*;
+import pl.itachi.modbus.io.*;
+import pl.itachi.modbus.net.*;
+import pl.itachi.modbus.util.*;
  
 public class DITest {
 

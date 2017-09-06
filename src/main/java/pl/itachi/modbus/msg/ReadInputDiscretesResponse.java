@@ -1,159 +1,168 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- * Original implementation by jamod development team.
- * This file modified by Charles Hache <chache@brood.ca>
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.msg;
+
+import pl.itachi.modbus.util.BitVector;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import pl.itachi.modbus.util.BitVector;
-import pl.itachi.modbus.Modbus;
-
 /**
- * Class implementing a <tt>ReadInputDiscretesResponse</tt>. The implementation
- * directly correlates with the class 1 function <i>read input discretes (FC
- * 2)</i>. It encapsulates the corresponding response message.
+ * Class implementing a <tt>ReadInputDiscretesResponse</tt>.
+ * The implementation directly correlates with the class 1
+ * function <i>read input discretes (FC 2)</i>. It encapsulates
+ * the corresponding response message.
  * <p>
- * Input Discretes are understood as bits that cannot be manipulated (i.e. set
- * or unset).
- * 
+ * Input Discretes are understood as bits that cannot be
+ * manipulated (i.e. set or unset).
+ *
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
-public final class ReadInputDiscretesResponse extends ModbusResponse {
+public final class ReadInputDiscretesResponse
+    extends ModbusResponse {
 
-	// instance attributes
-	private int m_BitCount;
-	private BitVector m_Discretes;
+  //instance attributes
+  private int m_BitCount;
+  private BitVector m_Discretes;
 
-	/**
-	 * Constructs a new <tt>ReadInputDiscretesResponse</tt> instance.
-	 */
-	public ReadInputDiscretesResponse() {
-		super();
-		setFunctionCode(Modbus.READ_INPUT_DISCRETES);
-	}// constructor
+  /**
+   * Constructs a new <tt>ReadInputDiscretesResponse</tt>
+   * instance.
+   */
+  public ReadInputDiscretesResponse() {
+    super();
+  }//constructor
 
-	/**
-	 * Constructs a new <tt>ReadInputDiscretesResponse</tt> instance with a
-	 * given count of input discretes (i.e. bits). <b>
-	 * 
-	 * @param count
-	 *            the number of bits to be read.
-	 */
-	public ReadInputDiscretesResponse(int count) {
-		super();
-		setBitCount(count);
-	}// constructor
 
-	/**
-	 * Returns the number of bits (i.e. input discretes) read with the request.
-	 * <p>
-	 * 
-	 * @return the number of bits that have been read.
-	 */
-	public int getBitCount() {
-		return m_BitCount;
-	}// getBitCount
+  /**
+   * Constructs a new <tt>ReadInputDiscretesResponse</tt>
+   * instance with a given count of input discretes
+   * (i.e. bits).
+   * <b>
+   * @param count the number of bits to be read.
+   */
+  public ReadInputDiscretesResponse(int count) {
+    super();
+    setBitCount(count);
+  }//constructor
 
-	/**
-	 * Sets the number of bits in this response.
-	 * 
-	 * @param count
-	 *            the number of response bits as int.
-	 */
-	public void setBitCount(int count) {
-		m_BitCount = count;
-		m_Discretes = new BitVector(count);
-		// set correct length, without counting unitid and fc
-		setDataLength(m_Discretes.byteSize() + 1);
-	}// setBitCount
+  /**
+   * Returns the number of bits (i.e. input discretes)
+   * read with the request.
+   * <p>
+   * @return the number of bits that have been read.
+   */
+  public int getBitCount() {
+    return m_BitCount;
+  }//getBitCount
 
-	/**
-	 * Returns the <tt>BitVector</tt> that stores the collection of bits that
-	 * have been read.
-	 * <p>
-	 * 
-	 * @return the <tt>BitVector</tt> holding the bits that have been read.
-	 */
-	public BitVector getDiscretes() {
-		return m_Discretes;
-	}// getDiscretes
+  /**
+   * Sets the number of bits in this response.
+   *
+   * @param count the number of response bits as int.
+   */
+  public void setBitCount(int count) {
+    m_BitCount = count;
+    m_Discretes = new BitVector(count);
+    //set correct length, without counting unitid and fc
+    setDataLength(m_Discretes.byteSize() + 1);
+  }//setBitCount
 
-	/**
-	 * Convenience method that returns the state of the bit at the given index.
-	 * <p>
-	 * 
-	 * @param index
-	 *            the index of the input discrete for which the status should be
-	 *            returned.
-	 * 
-	 * @return true if set, false otherwise.
-	 * 
-	 * @throws IndexOutOfBoundsException
-	 *             if the index is out of bounds
-	 */
-	public boolean getDiscreteStatus(int index)
-			throws IndexOutOfBoundsException {
 
-		return m_Discretes.getBit(index);
-	}// getDiscreteStatus
+  /**
+   * Returns the <tt>BitVector</tt> that stores
+   * the collection of bits that have been read.
+   * <p>
+   * @return the <tt>BitVector</tt> holding the
+   *         bits that have been read.
+   */
+  public BitVector getDiscretes() {
+    return m_Discretes;
+  }//getDiscretes
 
-	/**
-	 * Sets the status of the given input discrete.
-	 * 
-	 * @param index
-	 *            the index of the input discrete to be set.
-	 * @param b
-	 *            true if to be set, false if to be reset.
-	 * @throws IndexOutOfBoundsException
-	 *             if the given index exceeds bounds.
-	 */
-	public void setDiscreteStatus(int index, boolean b)
-			throws IndexOutOfBoundsException {
-		m_Discretes.setBit(index, b);
-	}// setDiscreteStatus
+  /**
+   * Convenience method that returns the state
+   * of the bit at the given index.
+   * <p>
+   * @param index the index of the input discrete
+   *        for which the status should be returned.
+   *
+   * @return true if set, false otherwise.
+   *
+   * @throws IndexOutOfBoundsException if the
+   *         index is out of bounds
+   */
+  public boolean getDiscreteStatus(int index)
+      throws IndexOutOfBoundsException {
 
-	public void writeData(DataOutput dout) throws IOException {
-		dout.writeByte(m_Discretes.byteSize());
-		dout.write(m_Discretes.getBytes(), 0, m_Discretes.byteSize());
-	}// writeData
+    return m_Discretes.getBit(index);
+  }//getDiscreteStatus
 
-	public void readData(DataInput din) throws IOException {
+  /**
+   * Sets the status of the given input discrete.
+   *
+   * @param index the index of the input discrete to be set.
+   * @param b true if to be set, false if to be reset.
+   * @throws IndexOutOfBoundsException if the given index exceeds bounds.
+   */
+  public void setDiscreteStatus(int index, boolean b)
+      throws IndexOutOfBoundsException {
+    m_Discretes.setBit(index, b);
+  }//setDiscreteStatus
 
-		int count = din.readUnsignedByte();
-		byte[] data = new byte[count];
-		for (int k = 0; k < count; k++) {
-			data[k] = din.readByte();
-		}
+  public void writeData(DataOutput dout)
+      throws IOException {
+    dout.writeByte(m_Discretes.byteSize());
+    dout.write(m_Discretes.getBytes(), 0, m_Discretes.byteSize());
+  }//writeData
 
-		// decode bytes into bitvector
-		m_Discretes = BitVector.createBitVector(data);
-		m_BitCount = count;
+  public void readData(DataInput din)
+      throws IOException {
 
-		// update data length
-		setDataLength(count + 1);
-	}// readData
+    int count = din.readUnsignedByte();
+    byte[] data = new byte[count];
+    for (int k = 0; k < count; k++) {
+      data[k] = din.readByte();
+    }
 
-	public String toString() {
-		return "ReadInputDiscretesResponse - Coils: " + getBitCount();
-	}
+    //decode bytes into bitvector
+    m_Discretes = BitVector.createBitVector(data);
 
-}// class ReadInputDiscretesResponse
+    //update data length
+    setDataLength(count + 1);
+  }//readData
+
+}//class ReadInputDiscretesResponse

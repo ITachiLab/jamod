@@ -1,22 +1,36 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- * Original implementation by jamod development team.
- * This file modified by Charles Hache <chache@brood.ca>
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.net;
 
 import java.io.IOException;
@@ -25,191 +39,161 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import pl.itachi.modbus.Modbus;
 import pl.itachi.modbus.util.ThreadPool;
 
 /**
  * Class that implements a ModbusTCPListener.<br>
- * If listening, it accepts incoming requests passing them on to be handled.
- * 
+ * If listening, it accepts incoming requests
+ * passing them on to be handled.
+ *
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
-public class ModbusTCPListener implements Runnable {
+public class ModbusTCPListener
+    implements Runnable {
 
-	private ServerSocket m_ServerSocket = null;
-	private ThreadPool m_ThreadPool;
-	private Thread m_Listener;
-	private int m_Port = Modbus.DEFAULT_PORT;
-	private int m_FloodProtection = 5;
-	private final AtomicBoolean m_Listening;
-	private InetAddress m_Address = null;
+  private static int c_RequestCounter = 0;
 
-	/**
-	 * Constructs a ModbusTCPListener instance.<br>
-	 * 
-	 * @param poolsize
-	 *            the size of the <tt>ThreadPool</tt> used to handle incoming
-	 *            requests.
-	 */
-	public ModbusTCPListener(int poolsize) {
-		m_Listening = new AtomicBoolean(false);
-		m_ThreadPool = new ThreadPool(poolsize);
-		try {
-			m_Address = InetAddress.getLocalHost();
-		} catch (UnknownHostException ex) {
-			if (Modbus.debug)
-				System.out.println("Couldn't get the local address: "
-						+ ex.toString());
-		}
-	}// constructor
+  private ServerSocket m_ServerSocket = null;
+  private ThreadPool m_ThreadPool;
+  private Thread m_Listener;
+  private int m_Port = Modbus.DEFAULT_PORT;
+  private int m_FloodProtection = 5;
+  private boolean m_Listening;
+  private InetAddress m_Address;
 
-	/**
-	 * Constructs a ModbusTCPListener instance.<br>
-	 * 
-	 * @param poolsize
-	 *            the size of the <tt>ThreadPool</tt> used to handle incoming
-	 *            requests.
-	 * @param addr
-	 *            the interface to use for listening.
-	 */
-	public ModbusTCPListener(int poolsize, InetAddress addr) {
-		m_Listening = new AtomicBoolean(false);
-		m_ThreadPool = new ThreadPool(poolsize);
-		m_Address = addr;
-	}// constructor
+  /**
+   * Constructs a ModbusTCPListener instance.<br>
+   *
+   * @param poolsize the size of the <tt>ThreadPool</tt> used to handle
+   *        incoming requests.
+   */
+  public ModbusTCPListener(int poolsize) {
+    m_ThreadPool = new ThreadPool(poolsize);
+    try {
+      m_Address = InetAddress.getLocalHost();
+    } catch (UnknownHostException ex) {
 
-	/**
-	 * Sets the port to be listened to.
-	 * 
-	 * @param port
-	 *            the number of the IP port as <tt>int</tt>.
-	 */
-	public void setPort(int port) {
-		m_Port = port;
-	}// setPort
+    }
+  }//constructor
 
-	/**
-	 * Sets the address of the interface to be listened to.
-	 * 
-	 * @param addr
-	 *            an <tt>InetAddress</tt> instance.
-	 */
-	public void setAddress(InetAddress addr) {
-		m_Address = addr;
-	}// setAddress
+  /**
+   * Constructs a ModbusTCPListener instance.<br>
+   *
+   * @param poolsize the size of the <tt>ThreadPool</tt> used to handle
+   *        incoming requests.
+   * @param addr the interface to use for listening.
+   */
+  public ModbusTCPListener(int poolsize, InetAddress addr) {
+    m_ThreadPool = new ThreadPool(poolsize);
+    m_Address = addr;
+  }//constructor
 
-	/**
-	 * Gets the address of the listening interface.
-	 * 
-	 * @return The address of the listening interface.
-	 */
-	public InetAddress getAddress() {
-		return m_Address;
-	}
 
-	/**
-	 * Starts this <tt>ModbusTCPListener</tt>.
-	 */
-	public void start() {
-		m_Listener = new Thread(this);
-		m_Listening.set(true);
-		m_Listener.start();
-	}// start
+  /**
+   * Sets the port to be listened to.
+   *
+   * @param port the number of the IP port as <tt>int</tt>.
+   */
+  public void setPort(int port) {
+    m_Port = port;
+  }//setPort
 
-	/**
-	 * Stops this <tt>ModbusTCPListener</tt>.
-	 */
-	public void stop() {
-		m_Listening.set(false);
-		if (m_ServerSocket != null) {
-			try {
-				m_ServerSocket.close();
-				m_Listener.interrupt(); // Interrupting is required as well as
-										// closing the socket
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}// stop
+  /**
+   * Sets the address of the interface to be listened to.
+   *
+   * @param addr an <tt>InetAddress</tt> instance.
+   */
+  public void setAddress(InetAddress addr) {
+    m_Address = addr;
+  }//setAddress
 
-	/**
-	 * Accepts incoming connections and handles then with
-	 * <tt>TCPConnectionHandler</tt> instances.
-	 */
-	public void run() {
+  /**
+   * Starts this <tt>ModbusTCPListener</tt>.
+   */
+  public void start() {
+    m_Listener = new Thread(this);
+    m_Listener.start();
+    m_Listening = true;
+  }//start
 
-		/*
-		 * A server socket is opened with a connectivity queue of a size
-		 * specified in int floodProtection. Concurrent login handling under
-		 * normal circumstances should be allright, denial of service attacks
-		 * via massive parallel program logins can probably be prevented.
-		 */
-		try {
-			m_ServerSocket = new ServerSocket(m_Port, m_FloodProtection,
-					m_Address);
-			if (Modbus.debug)
-				System.out.println("Listenening to "
-						+ m_ServerSocket.toString() + "(Port " + m_Port + ")");
-		} catch (IOException e1) {
-			System.err.println("Couldn't start TCP listener:");
-			e1.printStackTrace();
-			m_Listening.set(false);
-		}
-		
-		Socket incoming = null;
+  /**
+   * Stops this <tt>ModbusTCPListener</tt>.
+   */
+  public void stop() {
+    m_Listening = false;
+    try {
+      m_ServerSocket.close();
+      m_Listener.join();
+    } catch (Exception ex) {
+      //?
+    }
+  }//stop
 
-		while (m_Listening.get()) {
-			try {
-				incoming = m_ServerSocket.accept();
-				if (Modbus.debug)
-					System.out.println("Making new connection "
-							+ incoming.toString());
-				if (m_Listening.get()) {
-					// FIXME: Replace with object pool due to resource issues
-					m_ThreadPool.execute(new TCPConnectionHandler(
-							new TCPSlaveConnection(incoming)));
-				}
-				
-				// We can get these exceptions while quitting. If so, hide the
-				// error message. If the exception occurs during regular
-				// operation though, print the message
-			} catch (SocketException iex) {
-				if (m_Listening.get()) {
-					iex.printStackTrace();
-				}
-			} catch (IOException e) {
-				if (m_Listening.get()) {
-					e.printStackTrace();
-				}
-			}
-		} //while listening
-		
-		if (Modbus.debug)
-			System.out.println("ModbusTCPListener is quitting");
-		
-		if (incoming != null) {
-			try {
-				incoming.close();
-			} catch (IOException e) {
-				//Don't care.
-			}
-		}
-		
-		m_ThreadPool.killPool();
-	}// run
+  /**
+   * Accepts incoming connections and handles then with
+   * <tt>TCPConnectionHandler</tt> instances.
+   */
+  public void run() {
+    try {
+      /*
+          A server socket is opened with a connectivity queue of a size specified
+          in int floodProtection.  Concurrent login handling under normal circumstances
+          should be allright, denial of service attacks via massive parallel
+          program logins can probably be prevented.
+      */
+      m_ServerSocket = new ServerSocket(m_Port, m_FloodProtection, m_Address);
+      if(Modbus.debug) System.out.println("Listenening to " + m_ServerSocket.toString() + "(Port " + m_Port + ")");
 
-	/**
-	 * Tests if this <tt>ModbusTCPListener</tt> is listening and accepting
-	 * incoming connections.
-	 * 
-	 * @return true if listening (and accepting incoming connections), false
-	 *         otherwise.
-	 */
-	public boolean isListening() {
-		return m_Listening.get();
-	}// isListening
+      //Infinite loop, taking care of resources in case of a lot of parallel logins
+      do {
+        Socket incoming = m_ServerSocket.accept();
+        if (Modbus.debug) System.out.println("Making new connection " + incoming.toString());
+        if (m_Listening) {
+          //FIXME: Replace with object pool due to resource issues
+          m_ThreadPool.execute(
+              new TCPConnectionHandler(
+                  new TCPSlaveConnection(incoming)
+              )
+          );
+          count();
+        } else {
+          //just close the socket
+          incoming.close();
+        }
+      } while (m_Listening);
+    } catch (SocketException iex) {
+      if (!m_Listening) {
+        return;
+      } else {
+        iex.printStackTrace();
+      }
+    } catch (IOException e) {
+      //FIXME: this is a major failure, how do we handle this
+    }
+  }//run
 
-}// class ModbusTCPListener
+  /**
+   * Tests if this <tt>ModbusTCPListener</tt> is listening
+   * and accepting incoming connections.
+   *
+   * @return true if listening (and accepting incoming connections),
+   *          false otherwise.
+   */
+  public boolean isListening() {
+    return m_Listening;
+  }//isListening
+
+  private void count() {
+    c_RequestCounter++;
+    if (c_RequestCounter == REQUESTS_TOGC) {
+      System.gc();
+      c_RequestCounter = 0;
+    }
+  }//count
+
+  private static final int REQUESTS_TOGC = 10;
+
+}//class ModbusTCPListener

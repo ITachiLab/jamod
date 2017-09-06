@@ -1,19 +1,36 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.cmd;
 
 import pl.itachi.modbus.ModbusCoupler;
@@ -25,109 +42,108 @@ import pl.itachi.modbus.net.SerialConnection;
 import pl.itachi.modbus.util.SerialParameters;
 
 /**
- * Class that implements a simple commandline tool for reading an analog input.
- * 
+ * Class that implements a simple commandline
+ * tool for reading an analog input.
+ *
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
 public class SerialAITest {
 
-	public static void main(String[] args) {
+  public static void main(String[] args) {
 
-		SerialConnection con = null;
-		ModbusSerialTransaction trans = null;
-		ReadInputRegistersRequest req = null;
-		ReadInputRegistersResponse res = null;
+    SerialConnection con = null;
+    ModbusSerialTransaction trans = null;
+    ReadInputRegistersRequest req = null;
+    ReadInputRegistersResponse res = null;
 
-		String portname = null;
-		int unitid = 0;
-		int ref = 0;
-		int count = 0;
-		int repeat = 1;
+    String portname = null;
+    int unitid = 0;
+    int ref = 0;
+    int count = 0;
+    int repeat = 1;
 
-		try {
+    try {
 
-			// 1. Setup the parameters
-			if (args.length < 4) {
-				printUsage();
-				System.exit(1);
-			} else {
-				try {
-					portname = args[0];
-					unitid = Integer.parseInt(args[1]);
-					ref = Integer.parseInt(args[2]);
-					count = Integer.parseInt(args[3]);
-					if (args.length == 5) {
-						repeat = Integer.parseInt(args[4]);
-					}
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					printUsage();
-					System.exit(1);
-				}
-			}
+      //1. Setup the parameters
+      if (args.length < 4) {
+        printUsage();
+        System.exit(1);
+      } else {
+        try {
+          portname = args[0];
+          unitid = Integer.parseInt(args[1]);
+          ref = Integer.parseInt(args[2]);
+          count = Integer.parseInt(args[3]);
+          if (args.length == 5) {
+            repeat = Integer.parseInt(args[4]);
+          }
+        } catch (Exception ex) {
+          ex.printStackTrace();
+          printUsage();
+          System.exit(1);
+        }
+      }
 
-			// 2. Set slave identifier for master response parsing
-			ModbusCoupler.getReference().setUnitID(unitid);
+      //2. Set slave identifier for master response parsing
+      ModbusCoupler.getReference().setUnitID(unitid);
 
-			System.out.println("net.wimpi.modbus.debug set to: "
-					+ System.getProperty("net.wimpi.modbus.debug"));
+      System.out.println("net.wimpi.modbus.debug set to: " +
+                         System.getProperty("net.wimpi.modbus.debug"));
 
-			// 3. Setup serial parameters
-			SerialParameters params = new SerialParameters();
-			params.setPortName(portname);
-			params.setBaudRate(9600);
-			params.setDatabits(8);
-			params.setParity("None");
-			params.setStopbits(1);
-			params.setEncoding("ascii");
-			params.setEcho(false);
-			if (Modbus.debug)
-				System.out.println("Encoding [" + params.getEncoding() + "]");
+      //3. Setup serial parameters
+      SerialParameters params = new SerialParameters();
+      params.setPortName(portname);
+      params.setBaudRate(9600);
+      params.setDatabits(8);
+      params.setParity("None");
+      params.setStopbits(1);
+      params.setEncoding("ascii");
+      params.setEcho(false);
+      if (Modbus.debug) System.out.println("Encoding [" + params.getEncoding() + "]");
 
-			// 4. Open the connection
-			con = new SerialConnection(params);
-			con.open();
+      //4. Open the connection
+      con = new SerialConnection(params);
+      con.open();
 
-			// 5. Prepare a request
-			req = new ReadInputRegistersRequest(ref, count);
-			req.setUnitID(unitid);
-			req.setHeadless();
-			if (Modbus.debug)
-				System.out.println("Request: " + req.getHexMessage());
+      //5. Prepare a request
+      req = new ReadInputRegistersRequest(ref, count);
+      req.setUnitID(unitid);
+      req.setHeadless();
+      if (Modbus.debug) System.out.println("Request: " + req.getHexMessage());
 
-			// 6. Prepare the transaction
-			trans = new ModbusSerialTransaction(con);
-			trans.setRequest(req);
+      //6. Prepare the transaction
+      trans = new ModbusSerialTransaction(con);
+      trans.setRequest(req);
 
-			// 7. Execute the transaction repeat times
-			int k = 0;
-			do {
-				trans.execute();
+      //7. Execute the transaction repeat times
+      int k = 0;
+      do {
+        trans.execute();
 
-				res = (ReadInputRegistersResponse) trans.getResponse();
-				if (Modbus.debug)
-					System.out.println("Response: " + res.getHexMessage());
-				for (int n = 0; n < res.getWordCount(); n++) {
-					System.out.println("Word " + n + "="
-							+ res.getRegisterValue(n));
-				}
-				k++;
-			} while (k < repeat);
+        res = (ReadInputRegistersResponse) trans.getResponse();
+        if (Modbus.debug)
+          System.out.println("Response: " + res.getHexMessage());
+        for (int n = 0; n < res.getWordCount(); n++) {
+          System.out.println("Word " + n + "=" + res.getRegisterValue(n));
+        }
+        k++;
+      } while (k < repeat);
 
-			// 8. Close the connection
-			con.close();
+      //8. Close the connection
+      con.close();
 
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			// Close the connection
-			con.close();
-		}
-	}// main
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      // Close the connection
+      con.close();
+    }
+  }//main
 
-	private static void printUsage() {
-		System.out
-				.println("java net.wimpi.modbus.cmd.SerialAITest <portname [String]>  <Unit Address [int8]> <register [int16]> <wordcount [int16]> {<repeat [int]>}");
-	}// printUsage
+  private static void printUsage() {
+    System.out.println(
+        "java net.wimpi.modbus.cmd.SerialAITest <portname [String]>  <Unit Address [int8]> <register [int16]> <wordcount [int16]> {<repeat [int]>}"
+    );
+  }//printUsage
 
-}// class SerialAITest
+}//class SerialAITest

@@ -1,22 +1,36 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- * Original implementation by jamod development team.
- * This file modified by Charles Hache <chache@brood.ca>
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.io;
 
 import pl.itachi.modbus.Modbus;
@@ -27,215 +41,213 @@ import pl.itachi.modbus.msg.ExceptionResponse;
 import pl.itachi.modbus.msg.ModbusRequest;
 import pl.itachi.modbus.msg.ModbusResponse;
 import pl.itachi.modbus.net.SerialConnection;
-import pl.itachi.modbus.util.AtomicCounter;
-import pl.itachi.modbus.util.Mutex;
 
 /**
- * Class implementing the <tt>ModbusTransaction</tt> interface.
- * 
+ * Class implementing the <tt>ModbusTransaction</tt>
+ * interface.
+ *
  * @author Dieter Wimberger
- * @author Charles Hache
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
 public class ModbusSerialTransaction implements ModbusTransaction {
 
-	// class attributes
-	private static AtomicCounter c_TransactionID = new AtomicCounter(
-			Modbus.DEFAULT_TRANSACTION_ID);
+    //class attributes
+    private static int c_TransactionID = Modbus.DEFAULT_TRANSACTION_ID;
 
-	// instance attributes and associations
-	private ModbusTransport m_IO;
-	private ModbusRequest m_Request;
-	private ModbusResponse m_Response;
-	private boolean m_ValidityCheck = Modbus.DEFAULT_VALIDITYCHECK;
-	private int m_Retries = Modbus.DEFAULT_RETRIES;
-	private int m_TransDelayMS = Modbus.DEFAULT_TRANSMIT_DELAY;
-	private SerialConnection m_SerialCon;
+    //instance attributes and associations
+    private ModbusTransport m_IO;
+    private ModbusRequest m_Request;
+    private ModbusResponse m_Response;
+    private boolean m_ValidityCheck = Modbus.DEFAULT_VALIDITYCHECK;
+    private int m_Retries = Modbus.DEFAULT_RETRIES;
+    private int m_TransDelayMS = Modbus.DEFAULT_TRANSMIT_DELAY;
+    private SerialConnection m_SerialCon;
 
-	private Mutex m_TransactionLock = new Mutex();
+    /**
+     * Constructs a new <tt>ModbusSerialTransaction</tt>
+     * instance.
+     */
+    public ModbusSerialTransaction() {
+    }//constructor
 
-	/**
-	 * Constructs a new <tt>ModbusSerialTransaction</tt> instance.
-	 */
-	public ModbusSerialTransaction() {
-	}// constructor
+    /**
+     * Constructs a new <tt>ModbusSerialTransaction</tt>
+     * instance with a given <tt>ModbusRequest</tt> to
+     * be send when the transaction is executed.
+     * <p>
+     *
+     * @param request a <tt>ModbusRequest</tt> instance.
+     */
+    public ModbusSerialTransaction(ModbusRequest request) {
+        setRequest(request);
+    }//constructor
 
-	/**
-	 * Constructs a new <tt>ModbusSerialTransaction</tt> instance with a given
-	 * <tt>ModbusRequest</tt> to be sent when the transaction is executed.
-	 * <p/>
-	 * 
-	 * @param request
-	 *            a <tt>ModbusRequest</tt> instance.
-	 */
-	public ModbusSerialTransaction(ModbusRequest request) {
-		setRequest(request);
-	}// constructor
+    /**
+     * Constructs a new <tt>ModbusSerialTransaction</tt>
+     * instance with a given <tt>ModbusRequest</tt> to
+     * be send when the transaction is executed.
+     * <p>
+     *
+     * @param con a <tt>TCPMasterConnection</tt> instance.
+     */
+    public ModbusSerialTransaction(SerialConnection con) {
+        setSerialConnection(con);
+    }//constructor
 
-	/**
-	 * Constructs a new <tt>ModbusSerialTransaction</tt> instance with the given
-	 * <tt>SerialConnection</tt>
-	 * <p/>
-	 * 
-	 * @param con
-	 *            a <tt>SerialConnection</tt> instance.
-	 */
-	public ModbusSerialTransaction(SerialConnection con) {
-		setSerialConnection(con);
-	}// constructor
+    /**
+     * Sets the port on which this <tt>ModbusTransaction</tt>
+     * should be executed.<p>
+     * <p>
+     *
+     * @param con a <tt>SerialConnection</tt>.
+     */
+    public void setSerialConnection(SerialConnection con) {
+        m_SerialCon = con;
+        m_IO = con.getModbusTransport();
+    }//setConnection
 
-	/**
-	 * Sets the serial connection on which this <tt>ModbusTransaction</tt>
-	 * should be executed.
-	 * <p>
-	 * <p/>
-	 * 
-	 * @param con
-	 *            a <tt>SerialConnection</tt>.
-	 */
-	public void setSerialConnection(SerialConnection con) {
-		m_SerialCon = con;
-		m_IO = con.getModbusTransport();
-	}// setConnection
+    public int getTransactionID() {
+        return c_TransactionID;
+    }//getTransactionID
 
-	public int getTransactionID() {
-		return c_TransactionID.get();
-	}// getTransactionID
 
-	public void setRequest(ModbusRequest req) {
-		m_Request = req;
-	}// setRequest
+    public void setRequest(ModbusRequest req) {
+        m_Request = req;
+        //m_Response = req.getResponse();
+    }//setRequest
 
-	public ModbusRequest getRequest() {
-		return m_Request;
-	}// getRequest
+    public ModbusRequest getRequest() {
+        return m_Request;
+    }//getRequest
 
-	public ModbusResponse getResponse() {
-		return m_Response;
-	}// getResponse
+    public ModbusResponse getResponse() {
+        return m_Response;
+    }//getResponse
 
-	public void setCheckingValidity(boolean b) {
-		m_ValidityCheck = b;
-	}// setCheckingValidity
+    public void setCheckingValidity(boolean b) {
+        m_ValidityCheck = b;
+    }//setCheckingValidity
 
-	public boolean isCheckingValidity() {
-		return m_ValidityCheck;
-	}// isCheckingValidity
+    public boolean isCheckingValidity() {
+        return m_ValidityCheck;
+    }//isCheckingValidity
 
-	public int getRetries() {
-		return m_Retries;
-	}// getRetries
+    public int getRetries() {
+        return m_Retries;
+    }//getRetries
 
-	public void setRetries(int num) {
-		m_Retries = num;
-	}// setRetries
+    public void setRetries(int num) {
+        m_Retries = num;
+    }//setRetries
 
-	/**
-	 * Get the TransDelayMS value.
-	 * 
-	 * @return the TransDelayMS value.
-	 */
-	public int getTransDelayMS() {
-		return m_TransDelayMS;
-	}
+    /**
+     * Get the TransDelayMS value.
+     *
+     * @return the TransDelayMS value.
+     */
+    public int getTransDelayMS() {
+        return m_TransDelayMS;
+    }
 
-	/**
-	 * Set the TransDelayMS value.
-	 * 
-	 * @param newTransDelayMS
-	 *            The new TransDelayMS value.
-	 */
-	public void setTransDelayMS(int newTransDelayMS) {
-		this.m_TransDelayMS = newTransDelayMS;
-	}
+    /**
+     * Set the TransDelayMS value.
+     *
+     * @param newTransDelayMS The new TransDelayMS value.
+     */
+    public void setTransDelayMS(int newTransDelayMS) {
+        this.m_TransDelayMS = newTransDelayMS;
+    }
 
-	public void execute() throws ModbusIOException, ModbusSlaveException,
-			ModbusException {
-		// 1. assert executeability
-		assertExecutable();
+    public void execute() throws ModbusIOException, ModbusSlaveException, ModbusException {
+        //1. assert executeability
+        assertExecutable();
 
-		try {
-			// 2. Lock transaction
-			/**
-			 * Note: The way this explicit synchronization is implemented at the
-			 * moment, there is no ordering of pending threads. The Mutex will
-			 * simply call notify() and the JVM will handle the rest.
-			 */
-			m_TransactionLock.acquire();
+        //3. write request, and read response,
+        //   while holding the lock on the IO object
+        synchronized (m_IO) {
+            int tries = 0;
+            boolean finished = false;
+            do {
+                try {
+                    if (m_TransDelayMS > 0) {
+                        try {
+                            Thread.sleep(m_TransDelayMS);
+                        } catch (InterruptedException ex) {
+                            System.err.println("InterruptedException: " + ex.getMessage());
+                        }
+                    }
+                    //write request message
+                    m_IO.writeMessage(m_Request);
+                    //read response message
+                    m_Response = m_IO.readResponse();
+                    finished = true;
+                } catch (ModbusIOException e) {
+                    if (++tries >= m_Retries) {
+                        throw e;
+                    }
+                    System.err.println("execute try " + tries + " error: " +
+                            e.getMessage());
+                }
+            } while (!finished);
+        }
 
-			// 3. write request, and read response,
-			// while holding the lock on the IO object
-			synchronized (m_IO) {
-				int tries = 0;
-				boolean finished = false;
+        //4. deal with exceptions
+        if (m_Response instanceof ExceptionResponse) {
+            throw new ModbusSlaveException(
+                    ((ExceptionResponse) m_Response).getExceptionCode()
+            );
+        }
 
-				// toggle the id
-				m_Request.setTransactionID(c_TransactionID.increment());
+        if (isCheckingValidity()) {
+            checkValidity();
+        }
+        //toggle the id
+        toggleTransactionID();
+    }//execute
 
-				do {
-					try {
-						if (m_TransDelayMS > 0) {
-							try {
-								Thread.sleep(m_TransDelayMS);
-							} catch (InterruptedException ex) {
-								System.err.println("InterruptedException: "
-										+ ex.getMessage());
-							}
-						}
-						// write request message
-						m_IO.writeMessage(m_Request);
-						// read response message
-						m_Response = m_IO.readResponse();
-						m_Response.setReference(m_Request.getReference());
-						finished = true;
-					} catch (ModbusIOException e) {
-						if (++tries >= m_Retries) {
-							throw e;
-						}
-						System.err.println("execute try " + tries + " error: "
-								+ e.getMessage());
-					}
-				} while (!finished);
-			}
+    /**
+     * Asserts if this <tt>ModbusTCPTransaction</tt> is
+     * executable.
+     *
+     * @throws ModbusException if the transaction cannot be asserted.
+     */
+    private void assertExecutable()
+            throws ModbusException {
+        if (m_Request == null ||
+                m_SerialCon == null) {
+            throw new ModbusException(
+                    "Assertion failed, transaction not executable"
+            );
+        }
+    }//assertExecuteable
 
-			// 4. deal with exceptions
-			if (m_Response instanceof ExceptionResponse) {
-				throw new ModbusSlaveException(
-						((ExceptionResponse) m_Response).getExceptionCode());
-			}
+    /**
+     * Checks the validity of the transaction, by
+     * checking if the values of the response correspond
+     * to the values of the request.
+     *
+     * @throws ModbusException if the transaction is not valid.
+     */
+    private void checkValidity() throws ModbusException {
 
-			if (isCheckingValidity()) {
-				checkValidity();
-			}
-		} catch (InterruptedException ex) {
-			throw new ModbusIOException(
-					"Thread acquiring lock was interrupted.");
-		} finally {
-			m_TransactionLock.release();
-		}
-	}// execute
+    }//checkValidity
 
-	/**
-	 * Asserts if this <tt>ModbusSerialTransaction</tt> is executable.
-	 * 
-	 * @throws ModbusException
-	 *             if the transaction cannot be asserted.
-	 */
-	private void assertExecutable() throws ModbusException {
-		if (m_Request == null || m_SerialCon == null) {
-			throw new ModbusException(
-					"Assertion failed, transaction not executable");
-		}
-	}// assertExecuteable
+    /**
+     * Toggles the transaction identifier, to ensure
+     * that each transaction has a distinctive
+     * identifier.<br>
+     * When the maximum value of 65535 has been reached,
+     * the identifiers will start from zero again.
+     */
+    private void toggleTransactionID() {
+        if (isCheckingValidity()) {
+            if (c_TransactionID == (Short.MAX_VALUE * 2)) {
+                c_TransactionID = 0;
+            } else {
+                c_TransactionID++;
+            }
+        }
+        m_Request.setTransactionID(getTransactionID());
+    }//toggleTransactionID
 
-	/**
-	 * Checks the validity of the transaction, by checking if the values of the
-	 * response correspond to the values of the request.
-	 * 
-	 * @throws ModbusException
-	 *             if the transaction is not valid.
-	 */
-	protected void checkValidity() throws ModbusException {
-	}// checkValidity
-
-}// class ModbusSerialTransaction
+}//class ModbusSerialTransaction

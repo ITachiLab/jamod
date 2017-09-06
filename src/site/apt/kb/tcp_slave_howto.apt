@@ -89,9 +89,9 @@ Implementation
     imports of all <jamod> packages:
 
 +----------
-import net.wimpi.modbus.net.*;
-import net.wimpi.modbus.procimg.*;
-import net.wimpi.modbus.ModbusCoupler;
+import pl.itachi.modbus.net.*;
+import pl.itachi.modbus.procimg.*;
+import pl.itachi.modbus.ModbusCoupler;
 
 public class TCPSlaveTest {
 

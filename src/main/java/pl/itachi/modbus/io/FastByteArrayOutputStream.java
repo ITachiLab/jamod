@@ -1,19 +1,78 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
+/***
+ * This class has been derived from FastOutputStream code provided
+ * with the Berkeley DB under following license conditions.
+ *
+ * Modifications include the naming, coding style as well as various
+ * changed to make the class an extendable drop-in replacement for
+ * ByteArrayOutputStream.
+ *
+ * Copyright (c) 2000-2003
+ *      Sleepycat Software.  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Redistributions in any form must be accompanied by information on
+ *    how to obtain complete source code for the DB software and any
+ *    accompanying software that uses the DB software.  The source code
+ *    must either be included in the distribution or be available for no
+ *    more than the cost of distribution plus a nominal fee, and must be
+ *    freely redistributable under reasonable conditions.  For an
+ *    executable file, complete source code means the source code for all
+ *    modules it contains.  It does not include source code for modules or
+ *    files that typically accompany the major components of the operating
+ *    system on which the executable file runs.
+ *
+ * THIS SOFTWARE IS PROVIDED BY SLEEPYCAT SOFTWARE ``AS IS'' AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR
+ * NON-INFRINGEMENT, ARE DISCLAIMED.  IN NO EVENT SHALL SLEEPYCAT SOFTWARE
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ ***/
 package pl.itachi.modbus.io;
 
 import java.io.IOException;
@@ -21,219 +80,269 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 /**
- * This class is a clean room implementation of the ByteArrayOutputStream, with
- * enhancements for speed (no synchronization for example).
+ * This class is a replacement implementation for ByteArrayOutputStream
+ * that does not synchronize every
+ * byte written.
  * <p/>
- * The idea for such an implementation was originally obtained from Berkeley DB
- * JE, however, this represents a clean-room implementation that is <em>NOT</em>
- * derived from their implementation for license reasons and differs in
- * implementation considerably. For compatibility reasons we have tried to
- * conserve the interface as much as possible.
  * 
+ * @author Mark Hayes
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * 
+ * @version 1.2rc1 (09/11/2004)
  */
-public class FastByteArrayOutputStream extends OutputStream {
+public class FastByteArrayOutputStream
+    extends OutputStream {
 
-	protected int count;
-	protected byte[] buf;
+  /**
+   * Defines the default oputput buffer size (100 bytes).
+   */
+  public static final int DEFAULT_INIT_SIZE = 100;
+  /**
+   * Defines the default increment of the output buffer size
+   * (100 bytes).
+   */
+  public static final int DEFAULT_BUMP_SIZE = 100;
 
-	/**
-	 * Create a new <tt>FastByteArrayOutputStream</tt>. The default value
-	 * {@link #DEFAULT_SIZE} will be used.
-	 */
-	public FastByteArrayOutputStream() {
-		buf = new byte[DEFAULT_SIZE];
-	}// constructor
+  /**
+   * Number of bytes in the output buffer.
+   */
+  protected int count;
 
-	/**
-	 * Create a new <tt>FastByteArrayOutputStream</tt> with a given initial
-	 * buffer size.
-	 * 
-	 * @param bufferSize
-	 *            the initial size of the buffer as <tt>int</tt>.
-	 */
-	public FastByteArrayOutputStream(int bufferSize) {
-		buf = new byte[bufferSize];
-	}// constructor
+  /**
+   * Increment of the output buffer size on overflow.
+   */
+  protected int bumpLen;
 
-	/**
-	 * Create a new <tt>FastByteArrayOutputStream</tt> with a given initial
-	 * buffer.
-	 * 
-	 * @param buf
-	 *            the buffer as <tt>byte[]</tt>.
-	 */
-	public FastByteArrayOutputStream(byte[] buf) {
-		this.buf = buf;
-	}// constructor
+  /**
+   * Output buffer <tt>byte[]</tt>.
+   */
+  protected byte[] buf;
 
-	/**
-	 * Closing a <tt>FastByteArrayOutputStream</tt> has no effect. The methods
-	 * in this class can be called after the stream has been closed without
-	 * generating an IOException.
-	 */
-	public void close() {
-	}// close
+  /**
+   * Creates an output stream with default sizes.
+   */
+  public FastByteArrayOutputStream() {
+    buf = new byte[DEFAULT_INIT_SIZE];
+    bumpLen = DEFAULT_BUMP_SIZE;
+  }//constructor
 
-	/**
-	 * Resets the count of this <tt>FastByteArrayOutputStream</tt> to zero, so
-	 * that all currently accumulated output in the ouput stream is discarded
-	 * when overwritten.
-	 */
-	public void reset() {
-		count = 0;
-	}// reset
+  /**
+   * Creates an output stream with a default bump size and a given initial
+   * size.
+   *
+   * @param initialSize the initial size of the buffer.
+   */
+  public FastByteArrayOutputStream(int initialSize) {
+    buf = new byte[initialSize];
+    bumpLen = DEFAULT_BUMP_SIZE;
+  }//constructor
 
-	/**
-	 * Returns the current number of bytes in the buffer of this
-	 * <tt>FastByteArrayOutputStream</tt>.
-	 * 
-	 * @return the amount of bytes in the buffer.
-	 */
-	public int size() {
-		return count;
-	}// size
+  /**
+   * Creates an output stream with a given bump size and initial size.
+   *
+   * @param initialSize the initial size of the buffer.
+   * @param bumpSize    the amount to increment the buffer.
+   */
+  public FastByteArrayOutputStream(int initialSize, int bumpSize) {
+    buf = new byte[initialSize];
+    bumpLen = bumpSize;
+  }//constructor
 
-	/**
-	 * Returns a newly allocated <tt>byte[]</tt> with the actual content of the
-	 * buffer of this <tt>FastByteArrayOutputStream</tt>.
-	 * 
-	 * @return the current contents of this output stream, as a <tt>byte[]</tt>.
-	 * @see #size()
-	 */
-	public byte[] toByteArray() {
-		byte[] buf = new byte[count];
-		System.arraycopy(this.buf, 0, buf, 0, count);
-		return buf;
-	}// toByteArray
+  /**
+   * Creates an output stream with a given initial buffer and a default
+   * bump size.
+   *
+   * @param buffer the initial buffer; will be owned by this object.
+   */
+  public FastByteArrayOutputStream(byte[] buffer) {
+    buf = buffer;
+    bumpLen = DEFAULT_BUMP_SIZE;
+  }//constructor
 
-	/**
-	 * Converts the buffer's contents into a string, translating bytes into
-	 * characters according to the platform's default character encoding.
-	 * 
-	 * @return String translated from the buffer's contents.
-	 */
-	public String toString() {
-		return new String(buf, 0, count);
-	}// toString
+  /**
+   * Creates an output stream with a given initial buffer and a given
+   * bump size.
+   *
+   * @param buffer   the initial buffer; will be owned by this object.
+   * @param bumpSize the amount to increment the buffer.
+   */
+  public FastByteArrayOutputStream(byte[] buffer, int bumpSize) {
+    buf = buffer;
+    bumpLen = bumpSize;
+  }//constructor
 
-	/**
-	 * Converts the buffer's contents into a string, translating bytes into
-	 * characters according to the specified character encoding.
-	 * 
-	 * @param enc
-	 *            a character-encoding name.
-	 * @return String translated from the buffer's contents.
-	 * @throws UnsupportedEncodingException
-	 *             If the named encoding is not supported.
-	 */
-	public String toString(String enc) throws UnsupportedEncodingException {
-		return new String(buf, 0, count, enc);
-	}// toString
+  // --- begin ByteArrayOutputStream compatible methods ---
 
-	/**
-	 * Writes len bytes from the specified byte array starting at offset off to
-	 * this <tt>FastByteArrayOutputStream</tt>.
-	 * 
-	 * @param b
-	 *            the data.
-	 * @param off
-	 *            the start offset in the data.
-	 * @param len
-	 *            the number of bytes to write.
-	 */
-	public void write(byte[] b, int off, int len) {
-		ensureCapacity(count + len);
-		System.arraycopy(b, off, buf, count, len);
-		count += len;
-	}// write
+  /**
+   * Returns the number of bytes written to this
+   * <tt>FastByteArrayOutputStream</tt>.
+   *
+   * @return the number of bytes written as <tt>int</tt>.
+   */
+  public int size() {
+    return count;
+  }//size
 
-	/**
-	 * Writes the specified byte to this byte array output stream.
-	 * 
-	 * @param b
-	 *            the byte to be written.
-	 */
-	public void write(int b) {
-		ensureCapacity(count + 1);
-		buf[count++] = (byte) b;
-	}// write
+  /**
+   * Resets this <tt>FastByteArrayOutputStream</tt>.
+   */
+  public void reset() {
+    count = 0;
+  }//reset
 
-	/**
-	 * Writes the complete contents of this <tt>FastByteArrayOutputStream</tt>
-	 * to the specified output stream argument.
-	 * 
-	 * @param out
-	 *            the output stream to which to write the data.
-	 * @throws IOException
-	 *             if an I/O error occurs.
-	 */
-	public void writeTo(OutputStream out) throws IOException {
-		out.write(buf, 0, count);
-	}// writeTo
+  public void write(int b) throws IOException {
+    if (count + 1 > buf.length) {
+      bump(1);
+    }
+    buf[count++] = (byte) b;
+  }//write
 
-	/**
-	 * Convenience method that writes all bytes from the specified byte array to
-	 * this <tt>FastByteArrayOutputStream</tt>.
-	 * 
-	 * @param buf
-	 * @throws IOException
-	 */
-	public void write(byte[] buf) throws IOException {
-		write(buf, 0, buf.length);
-	}// write
+  public void write(byte[] fromBuf) throws IOException {
+    int needed = count + fromBuf.length - buf.length;
+    if (needed > 0) {
+      bump(needed);
+    }
+    for (int i = 0; i < fromBuf.length; i++) {
+      buf[count++] = fromBuf[i];
+    }
+  }//write
 
-	/**
-	 * Increases the capacity of this <tt>FastByteArrayOutputStream</tt>s
-	 * buffer, if necessary, to ensure that it can hold at least the number of
-	 * bytes specified by the minimum capacity argument.
-	 * 
-	 * @param minCapacity
-	 *            the desired minimum capacity.
-	 */
-	public final void ensureCapacity(int minCapacity) {
-		if (minCapacity < buf.length) {
-			return;
-		} else {
-			byte[] newbuf = new byte[minCapacity];
-			System.arraycopy(buf, 0, newbuf, 0, count);
-			buf = newbuf;
-		}
-	}// ensureCapacity
+  public void write(byte[] fromBuf, int offset, int length)
+      throws IOException {
 
-	/**
-	 * Copies the content of this <tt>FastByteArrayOutputStream</tt> into the
-	 * given byte array, starting from the given offset.
-	 * 
-	 * @param b
-	 *            the buffer to hold a copy of the data.
-	 * @param offset
-	 *            the offset at which to start copying.
-	 */
-	public void toByteArray(byte[] b, int offset) {
-		if (offset >= b.length) {
-			throw new IndexOutOfBoundsException();
-		}
-		int len = count - offset;
-		if (len > b.length) {
-			System.arraycopy(buf, offset, b, offset, b.length); // just copy
-																// what is there
-		} else {
-			System.arraycopy(buf, offset, b, offset, len);
-		}
-	}// toByteArray
+    int needed = count + length - buf.length;
+    if (needed > 0) {
+      bump(needed);
+    }
+    int fromLen = offset + length;
 
-	/**
-	 * Returns a reference to the buffer of this
-	 * <tt>FastByteArrayOutputStream</tt>.
-	 * 
-	 * @return the buffer.
-	 */
-	public byte[] getBuffer() {
-		return buf;
-	}// getBuffer
+    for (int i = offset; i < fromLen; i++) {
+      buf[count++] = fromBuf[i];
+    }
+  }//write
 
-	public static final int DEFAULT_SIZE = 512;
+  /**
+   * Writes the content of this <tt>FastByteArrayOutputStream</tt>
+   * to the given output stream.
+   *
+   * @param out the output stream to be written to.
+   *
+   * @throws IOException if an I/O error occurs.
+   */
+  public synchronized void writeTo(OutputStream out)
+      throws IOException {
+    out.write(buf, 0, count);
+  }//writeTo
 
-}// class FastByteArrayOutputStream
+  public String toString() {
+    return new String(buf, 0, count);
+  }//toString
+
+  /**
+   * Returns the content of this <tt>FastByteArrayOutputStream</tt>
+   * as String.
+   *
+   * @param encoding the encoding to be used for conversion.
+   * @return a newly allocated String.
+   *
+   * @throws UnsupportedEncodingException if the given encoding is not supported.
+   */
+  public String toString(String encoding)
+      throws UnsupportedEncodingException {
+    return new String(buf, 0, count, encoding);
+  }//toString
+
+  /**
+   * Returns the written bytes in a newly allocated byte[]
+   * of length getSize().
+   *
+   * @return a newly allocated byte[] with the content of the
+   *         output buffer.
+   */
+  public byte[] toByteArray() {
+    byte[] toBuf = new byte[count];
+    System.arraycopy(buf,0,toBuf,0,count);
+    //for (int i = 0; i < count; i++) {
+    //  toBuf[i] = buf[i];
+    //}
+    return toBuf;
+  }//toByteArray
+
+  // --- end ByteArrayOutputStream compatible methods ---
+
+  /**
+   * Copy the buffered data to the given array.
+   *
+   * @param toBuf  the buffer to hold a copy of the data.
+   * @param offset the offset at which to start copying.
+   */
+  public void toByteArray(byte[] toBuf, int offset) {
+    int toLen = (toBuf.length > count) ? count : toBuf.length;
+    for (int i = offset; i < toLen; i++) {
+      toBuf[i] = buf[i];
+    }
+  }//toByteArray
+
+  /**
+   * Returns the buffer owned by this object.
+   *
+   * @return the buffer.
+   */
+  public byte[] getBufferBytes() {
+    return buf;
+  }//getBufferBytes
+
+  /**
+   * Returns the offset of the internal buffer.
+   *
+   * @return always zero currently.
+   */
+  public int getBufferOffset() {
+    return 0;
+  }//getBufferOffset
+
+  /**
+   * Returns the length used in the internal buffer, that is, the offset at
+   * which data will be written next.
+   *
+   * @return the buffer length.
+   */
+  public int getBufferLength() {
+    return count;
+  }//getBufferLength
+
+  /**
+   * Ensure that at least the given number of bytes are available in the
+   * internal buffer.
+   *
+   * @param sizeNeeded the number of bytes desired.
+   */
+  public void makeSpace(int sizeNeeded) {
+
+    int needed = count + sizeNeeded - buf.length;
+    if (needed > 0) {
+      bump(needed);
+    }
+  }//makeSpace
+
+  /**
+   * Skip the given number of bytes in the buffer.
+   *
+   * @param sizeAdded number of bytes to skip.
+   */
+  public void addSize(int sizeAdded) {
+    count += sizeAdded;
+  }//addSize
+
+  private void bump(int needed) {
+
+    byte[] toBuf = new byte[buf.length + needed + bumpLen];
+
+    for (int i = 0; i < count; i++) {
+      toBuf[i] = buf[i];
+    }
+    buf = toBuf;
+  }//bump
+
+
+}//class FastByteArrayOutputStream

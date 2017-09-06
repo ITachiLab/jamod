@@ -191,9 +191,9 @@ What is a Process Image?
     <Java Native Interface (JNI)>.
 
 +----------
-package net.wimpi.example;
+package pl.itachi.example;
 
-import net.wimpi.modbus.procimg.*;
+import pl.itachi.modbus.procimg.*;
 import java.util.Random;
 
 public final class RandomDigitalIn

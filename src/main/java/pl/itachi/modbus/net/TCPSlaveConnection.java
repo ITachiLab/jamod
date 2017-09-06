@@ -1,22 +1,36 @@
+//License
 /***
- * Copyright 2002-2010 jamod development team
+ * Java Modbus Library (jamod)
+ * Copyright (c) 2002-2004, jamod development team
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- * Original implementation by jamod development team.
- * This file modified by Charles Hache <chache@brood.ca>
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS
+ * IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
 package pl.itachi.modbus.net;
 
 import java.io.IOException;
@@ -29,132 +43,128 @@ import pl.itachi.modbus.io.ModbusTransport;
 
 /**
  * Class that implements a TCPSlaveConnection.
- * 
+ *
  * @author Dieter Wimberger
- * @version @version@ (@date@)
+ * @version 1.2rc1 (09/11/2004)
  */
 public class TCPSlaveConnection {
 
-	// instance attributes
-	private Socket m_Socket;
-	private int m_Timeout = Modbus.DEFAULT_TIMEOUT;
-	private boolean m_Connected;
-	private ModbusTCPTransport m_ModbusTransport;
+  //instance attributes
+  private Socket m_Socket;
+  private int m_Timeout = Modbus.DEFAULT_TIMEOUT;
+  private boolean m_Connected;
+  private ModbusTCPTransport m_ModbusTransport;
 
-	/**
-	 * Constructs a <tt>TCPSlaveConnection</tt> instance using a given socket
-	 * instance.
-	 * 
-	 * @param socket
-	 *            the socket instance to be used for communication.
-	 */
-	public TCPSlaveConnection(Socket socket) {
-		try {
-			setSocket(socket);
-		} catch (IOException ex) {
-			if (Modbus.debug)
-				System.out.println("TCPSlaveConnection::Socket invalid.");
-			// @commentstart@
-			throw new IllegalStateException("Socket invalid.");
-			// @commentend@
-		}
-	}// constructor
+  /**
+   * Constructs a <tt>TCPSlaveConnection</tt> instance
+   * using a given socket instance.
+   *
+   * @param socket the socket instance to be used for communication.
+   */
+  public TCPSlaveConnection(Socket socket) {
+    try {
+      setSocket(socket);
+    } catch (IOException ex) {
+       if(Modbus.debug) System.out.println("TCPSlaveConnection::Socket invalid.");
+      //
 
-	/**
-	 * Closes this <tt>TCPSlaveConnection</tt>.
-	 */
-	public void close() {
-		if (m_Connected) {
-			try {
-				m_ModbusTransport.close();
-				m_Socket.close();
-			} catch (IOException ex) {
-				if (Modbus.debug)
-					ex.printStackTrace();
-			}
-			m_Connected = false;
-		}
-	}// close
+      throw new IllegalStateException("Socket invalid.");
+      //
+    }
+  }//constructor
 
-	/**
-	 * Returns the <tt>ModbusTransport</tt> associated with this
-	 * <tt>TCPMasterConnection</tt>.
-	 * 
-	 * @return the connection's <tt>ModbusTransport</tt>.
-	 */
-	public ModbusTransport getModbusTransport() {
-		return m_ModbusTransport;
-	}// getIO
+  /**
+   * Closes this <tt>TCPSlaveConnection</tt>.
+   */
+  public void close() {
+    if(m_Connected) {
+      try {
+        m_ModbusTransport.close();
+        m_Socket.close();
+      } catch (IOException ex) {
+        if(Modbus.debug) ex.printStackTrace();
+      }
+      m_Connected = false;
+    }
+  }//close
 
-	/**
-	 * Prepares the associated <tt>ModbusTransport</tt> of this
-	 * <tt>TCPMasterConnection</tt> for use.
-	 * 
-	 * @param socket
-	 *            the socket to be used for communication.
-	 * @throws IOException
-	 *             if an I/O related error occurs.
-	 */
-	private void setSocket(Socket socket) throws IOException {
-		m_Socket = socket;
-		if (m_ModbusTransport == null) {
-			m_ModbusTransport = new ModbusTCPTransport(m_Socket);
-		} else {
-			m_ModbusTransport.setSocket(m_Socket);
-		}
-		m_Connected = true;
-	}// prepareIO
+  /**
+   * Returns the <tt>ModbusTransport</tt> associated with this
+   * <tt>TCPMasterConnection</tt>.
+   *
+   * @return the connection's <tt>ModbusTransport</tt>.
+   */
+  public ModbusTransport getModbusTransport() {
+    return m_ModbusTransport;
+  }//getIO
 
-	/**
-	 * Returns the timeout for this <tt>TCPMasterConnection</tt>.
-	 * 
-	 * @return the timeout as <tt>int</tt>.
-	 */
-	public int getTimeout() {
-		return m_Timeout;
-	}// getReceiveTimeout
+  /**
+   * Prepares the associated <tt>ModbusTransport</tt> of this
+   * <tt>TCPMasterConnection</tt> for use.
+   *
+   * @param socket the socket to be used for communication.
+   * @throws IOException if an I/O related error occurs.
+   */
+  private void setSocket(Socket socket) throws IOException {
+    m_Socket = socket;
+    if (m_ModbusTransport == null) {
+      m_ModbusTransport = new ModbusTCPTransport(m_Socket);
+    } else {
+      m_ModbusTransport.setSocket(m_Socket);
+    }
+    m_Connected = true;
+  }//prepareIO
 
-	/**
-	 * Sets the timeout for this <tt>TCPSlaveConnection</tt>.
-	 * 
-	 * @param timeout
-	 *            the timeout as <tt>int</tt>.
-	 */
-	public void setTimeout(int timeout) {
-		m_Timeout = timeout;
-		try {
-			m_Socket.setSoTimeout(m_Timeout);
-		} catch (IOException ex) {
-			// handle?
-		}
-	}// setReceiveTimeout
+  /**
+   * Returns the timeout for this <tt>TCPMasterConnection</tt>.
+   *
+   * @return the timeout as <tt>int</tt>.
+   */
+  public int getTimeout() {
+    return m_Timeout;
+  }//getTimeout
 
-	/**
-	 * Returns the destination port of this <tt>TCPMasterConnection</tt>.
-	 * 
-	 * @return the port number as <tt>int</tt>.
-	 */
-	public int getPort() {
-		return m_Socket.getLocalPort();
-	}// getPort
+  /**
+   * Sets the timeout for this <tt>TCPSlaveConnection</tt>.
+   *
+   * @param timeout the timeout as <tt>int</tt>.
+   */
+  public void setTimeout(int timeout) {
+    m_Timeout = timeout;
+    try {
+      m_Socket.setSoTimeout(m_Timeout);
+    } catch (IOException ex) {
+      //handle?
+    }
+  }//setTimeout
 
-	/**
-	 * Returns the destination <tt>InetAddress</tt> of this
-	 * <tt>TCPMasterConnection</tt>.
-	 * 
-	 * @return the destination address as <tt>InetAddress</tt>.
-	 */
-	public InetAddress getAddress() {
-		return m_Socket.getLocalAddress();
-	}// getAddress
+  /**
+   * Returns the destination port of this
+   * <tt>TCPMasterConnection</tt>.
+   *
+   * @return the port number as <tt>int</tt>.
+   */
+  public int getPort() {
+    return m_Socket.getLocalPort();
+  }//getPort
 
-	/**
-	 * Tests if this <tt>TCPMasterConnection</tt> is connected.
-	 * 
-	 * @return <tt>true</tt> if connected, <tt>false</tt> otherwise.
-	 */
-	public boolean isConnected() {
-		return m_Connected;
-	}// isConnected
+  /**
+   * Returns the destination <tt>InetAddress</tt> of this
+   * <tt>TCPMasterConnection</tt>.
+   *
+   * @return the destination address as <tt>InetAddress</tt>.
+   */
+  public InetAddress getAddress() {
+    return m_Socket.getLocalAddress();
+  }//getAddress
 
-}// class TCPSlaveConnection
+  /**
+   * Tests if this <tt>TCPMasterConnection</tt> is connected.
+   *
+   * @return <tt>true</tt> if connected, <tt>false</tt> otherwise.
+   */
+  public boolean isConnected() {
+    return m_Connected;
+  }//isConnected
+
+}//class TCPSlaveConnection
